@@ -1,55 +1,75 @@
-use clap::crate_version;
-use clap::{App, Arg};
+use clap::{Arg, ArgAction, ArgMatches};
 use redis::Commands;
-use std::env;
 use std::{thread, time};
 
-fn app_args<'a>() -> clap::ArgMatches<'a> {
-    App::new("redis-test")
-        .version(crate_version!())
-        .about("Redis testing application written in Rust")
+fn app_args() -> ArgMatches {
+    clap::Command::new("redis-test")
         .arg(
-            Arg::with_name("cluster")
-                .help("Sets the redis cluster mode")
-                .long("cluster")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("cmd")
+            Arg::new("cmd")
                 .help("Sets cmd (set|get|del)")
                 .long("cmd")
                 .required(true)
-                .takes_value(true),
+                .value_parser(["set", "get", "del"])
+                .action(ArgAction::Set),
         )
-        .arg(Arg::with_name("count").short("n").long("count").help("Sets count of requests").takes_value(true))
-        .arg(Arg::with_name("interval").long("interval").help("Sets interval in milliseconds for all requests").takes_value(true))
-        .arg(Arg::with_name("data-size").long("data-size").help("Sets data size").takes_value(true))
         .arg(
-            Arg::with_name("nodes")
+            Arg::new("count")
+                .help("Sets count of requests")
+                .long("count")
+                .short('c')
+                .value_parser(clap::value_parser!(u64))
+                .default_value("10")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("interval")
+                .help("Sets interval in milliseconds for all requests (ms)")
+                .long("interval")
+                .short('i')
+                .value_parser(clap::value_parser!(u64))
+                .default_value("10")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("data-size")
+                .help("Sets data size")
+                .long("data-size")
+                .value_parser(clap::value_parser!(usize))
+                .default_value("100")
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("nodes")
                 .help("Sets the redis connection string (redis://:password@127.0.0.1:6379/,redis://:password@127.0.0.1:6380)")
+                .long("nodes")
                 .required(true)
-                .takes_value(true),
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("cluster")
+                .help("Sets the redis cluster mode")
+                .long("cluster")
+                .action(ArgAction::SetTrue),
         )
         .get_matches()
 }
 
 fn main() -> redis::RedisResult<()> {
     let matches = app_args();
-    let nodes = matches.value_of("nodes").unwrap();
-    let is_cluster = matches.is_present("cluster");
-    let count_str = matches.value_of("count").unwrap_or("10");
-    let interval_str = matches.value_of("interval").unwrap_or("0");
-    let cmd = matches.value_of("cmd").unwrap();
-    let data_size_str = matches.value_of("data-size").unwrap_or("10");
 
-    let count = count_str.parse::<u64>().unwrap();
-    let interval = interval_str.parse::<u64>().unwrap();
-    let data_size = data_size_str.parse::<usize>().unwrap();
+    let cmd = matches.get_one::<String>("cmd").unwrap();
+    let count = *matches.get_one::<u64>("count").unwrap();
+    let interval = *matches.get_one::<u64>("interval").unwrap();
+    let data_size = *matches.get_one::<usize>("data-size").unwrap();
+    let nodes = matches.get_one::<String>("nodes").unwrap();
+    let is_cluster = matches.get_flag("cluster");
 
     println!("cmd: {}", cmd);
     println!("count: {}", count);
-    println!("is_cluster: {}", is_cluster);
+    println!("interval: {}", interval);
+    println!("data-size: {}", data_size);
     println!("nodes: {}", nodes);
+    println!("is_cluster: {}", is_cluster);
 
     let key = String::from("redis-test");
     let value: Vec<u8> = vec![b'a'; data_size];
