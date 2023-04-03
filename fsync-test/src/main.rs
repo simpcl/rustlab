@@ -1,35 +1,53 @@
-use std::env;
+use clap::{Arg, ArgAction, ArgMatches};
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{Error, ErrorKind};
 use std::{thread, time};
 
 const BUF_SIZE: usize = 4096;
 
-fn usage() {
-    println!("./fsync-test [file path] [fize size (MB)] [interval]")
+fn app_args() -> ArgMatches {
+    clap::Command::new("fsync-test")
+        .arg(
+            Arg::new("file-path")
+                .help("Sets the written file path")
+                .long("file-path")
+                .short('f')
+                .required(true)
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("file-size")
+                .help("Sets the written file size (MB)")
+                .long("file-size")
+                .short('s')
+                .value_parser(clap::value_parser!(u64))
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("interval")
+                .help("Sets the written interval (ms)")
+                .long("interval")
+                .short('i')
+                .value_parser(clap::value_parser!(u64))
+                .action(ArgAction::Set),
+        )
+        .get_matches()
 }
 
 fn main() -> std::io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 4 {
-        usage();
-        //return Err(Error::new(ErrorKind::Other, "abc"));
-        return Ok(());
-    }
-
-    let file_path = &args[1];
-    let file_size = args[2].parse::<u64>().unwrap();
-    let interval = args[3].parse::<u64>().unwrap();
+    let matches = app_args();
+    let file_path = matches.get_one::<String>("file-path").unwrap();
+    let file_size_mb = *matches.get_one::<u64>("file-size").unwrap();
+    let interval = *matches.get_one::<u64>("interval").unwrap();
 
     println!("file path: {}", file_path);
-    println!("file size: {}MB", file_size);
+    println!("file size: {}MB", file_size_mb);
     println!("interval {}s", interval);
 
     //let mut f = File::options().append(true).create(true).open(file_path)?;
     let mut f = File::create(file_path)?;
     let mut buffer = [0u8; BUF_SIZE];
-    let file_size = file_size * 1024 * 1024;
+    let file_size = file_size_mb * 1024 * 1024;
     let buffer_size: u64 = u64::try_from(BUF_SIZE).unwrap();
 
     let mut w_pos: u64 = 0;
@@ -57,5 +75,5 @@ fn main() -> std::io::Result<()> {
         //std::io::stdout().flush()?;
     }
 
-    Ok(())
+    //Ok(())
 }
