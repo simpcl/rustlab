@@ -3,7 +3,7 @@ struct Trie {
     capacity: usize,
 }
 
-fn new_trie(n: usize) -> Trie {
+fn new_trie(_n: usize) -> Trie {
     Trie {
         state: vec![[0; 27]],
         capacity: 0,

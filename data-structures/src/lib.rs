@@ -1,5 +1,6 @@
 mod array {
     pub mod dup;
+    pub mod island;
     pub mod sort;
 }
 
